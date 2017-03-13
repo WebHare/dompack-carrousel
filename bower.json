@@ -1,0 +1,20 @@
+{
+  "name": "dompack-carrousel",
+  "description": "Dompack Carrousel",
+  "main": "src/index.es",
+  "authors": [
+    "B-Lex IT B.V."
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "dompack": "^0.0.1"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "dompack-carrousel",
+  "version": "0.0.1",
+  "description": "Dompack Carrousel",
+  "main": "src/index.es",
+  "scripts": {
+    "test": "echo \"Not yet available\" && exit 1"
+  },
+  "author": "B-Lex IT B.V.",
+  "license": "MIT",
+  "peerDependencies": {
+    "dompack": "^0.0.1"
+  }
+}
