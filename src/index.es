@@ -28,6 +28,8 @@ export default class SpellcoderCarrousel
 
       items_onscreen - list of nodes in use. used to match after drawing all caroussel-cell's which nodes from the previous animation frame aren't used anymore and must be moved offscreen.
 
+      visiblenodes - rendering information that can be used outside the class for special effects
+
       scrollleft - the virtual scroll left we internally work with
       width_content - the size of the content (which will be repeated)
       width_viewport
@@ -39,7 +41,8 @@ export default class SpellcoderCarrousel
       activeslideidx
       activeslidenode
       alignedslideidx
-      alignedslidenode
+      alignedslidenode - the (copy of the) slide which is active
+      alignedslidevirtualidx
 
       paused // not implemented yet
   */
@@ -102,6 +105,9 @@ export default class SpellcoderCarrousel
             , masonry_renderinfo:    [] // renderinfo from Spellcoder Masonry, to turn a Masonry into an Carrousel
             , contentnode:           null // node in which to place newly clones nodes. for easy grouping (destroying/fade effects)
 
+            , buttonprevious:        null
+            , buttonnext:            null
+            , slideskip:             1
 
 
             // layout overrides ---------------------------------------------------------------
@@ -145,14 +151,12 @@ export default class SpellcoderCarrousel
 
     this.node = node;
 
-    this.nodes = {};
-
     this.nodes =
             { dragarea:   this.getSelfOrChild(node, "carrousel__dragarea")
             , viewport:   this.getSelfOrChild(node, "carrousel__viewport") // positioning container for items + focus element for keyboard navigation
-            , content:    this.options.contentnode ? this.options.contentnode : this.getSelfOrChild(node, "carrousel__content") // for easy grouping of all items (easy deletion/replacing), falls back to viewport if not existant.. all copies of content will be thrown into this container.
-            , btn_prev:   this.getSelfOrChild(node, "carrousel__previous")
-            , btn_next:   this.getSelfOrChild(node, "carrousel__next")
+            , content:    this.options.contentnode    ? this.options.contentnode : this.getSelfOrChild(node, "carrousel__content") // for easy grouping of all items (easy deletion/replacing), falls back to viewport if not existant.. all copies of content will be thrown into this container.
+            , btn_prev:   this.options.buttonprevious ? this.options.buttonprevious : this.getSelfOrChild(node, "carrousel__previous")
+            , btn_next:   this.options.buttonnext     ? this.options.buttonnext     : this.getSelfOrChild(node, "carrousel__next")
             };
 
     //this._addToLog("Initialized while document readyState is " + document.readyState);
@@ -178,6 +182,7 @@ export default class SpellcoderCarrousel
 
     this.items = []; // the original slides/carousel-cells
     this.items_onscreen = [];
+    this.visiblenodes = []; // ADDME: rendering information
 
     this.scrollleft = 0;
     this.width_viewport = 0;
@@ -198,6 +203,8 @@ export default class SpellcoderCarrousel
     this.alignedslidenode = null;
 
     this.animationframe = null;
+
+    this.finishedinit = false; // if our content width is 0 we have to delay until this changes
 
     //this.paused = false;
 
@@ -246,24 +253,33 @@ export default class SpellcoderCarrousel
 
     this.__determineContainerWidth();
 
-    var virtualwidth = 2147483645;
+    this.virtualwidth = 2147483645;
 
     if (this.options.blockscrolloncontentleft)
       this.scrollleft = 0; // endless scroll to the right
     else
-      this.scrollleft = Math.round(virtualwidth / 2); // enless scroll to all sides
+      this.scrollleft = Math.round(this.virtualwidth / 2); // endless scroll to all sides
+
+    this.attemptFinishInit();
+  }
+
+  attemptFinishInit()
+  {
+    if (this.width_content == 0)
+    {
+      console.info("Carrousel", this.options.name, "cancelled init (content width is 0)");
+      return;
+    }
+    else
+      console.info("Carrousel", this.options.name, "is finishing init");
 
     let initialx = this.scrollleft;
 
-    //let initialx = this.scrollleft;
     if (this.options.initialslide != "none")
     {
       initialx = this.__getLeftForSlide(this.options.initialslide);
       if (isNaN(initialx))
-      {
         console.error("Cannot determine initial X position. (internal slides info corrupt?)");
-        //return;
-      }
     }
     else
     {
@@ -286,7 +302,7 @@ export default class SpellcoderCarrousel
           , wrapperWidth:  this.width_viewport // don't care // FIXME: care because this influences the momentum
           , scrollerWidth: 0 // don't care
 
-          , maxScrollX:    virtualwidth
+          , maxScrollX:    this.virtualwidth
           , startX:        -initialx
 
           , scrollX: true
@@ -309,7 +325,7 @@ export default class SpellcoderCarrousel
           , name:           "" // for debugging purposes
           };
 
-      if (this.options.debug)
+//      if (this.options.debug)
         console.log(iscrollsettings);
 
       this.iscroll = new IScroll(this.nodes.dragarea, iscrollsettings);
@@ -323,10 +339,21 @@ export default class SpellcoderCarrousel
       this.prevtime = -1;
 
       if (this.nodes.btn_prev)
-        this.nodes.btn_prev.addEventListener("tap", this.__onPreviousSlideClick.bind(this));
+      {
+        // FIXME: if within viewport AND using iscroll ??
+//        if (dompack.closest(this.nodes.btn_prev, ".carrousel__viewport")) // FIXME: look for this.nodes.viewport instead
+//          this.nodes.btn_prev.addEventListener("tap", this.__onPreviousSlideClick.bind(this));
+//        else
+          this.nodes.btn_prev.addEventListener("click", this.__onPreviousSlideClick.bind(this));
+      }
 
       if (this.nodes.btn_next)
-        this.nodes.btn_next.addEventListener("tap", this.__onNextSlideClick.bind(this));
+      {
+//        if (dompack.closest(this.nodes.btn_next, ".carrousel__viewport")) // FIXME: look for this.nodes.viewport instead
+//          this.nodes.btn_next.addEventListener("tap", this.__onNextSlideClick.bind(this));
+//        else
+          this.nodes.btn_next.addEventListener("click", this.__onNextSlideClick.bind(this));
+      }
 
       this.nodes.viewport.addEventListener("tap", this.__detectCellTap.bind(this));
     }
@@ -337,7 +364,7 @@ export default class SpellcoderCarrousel
     }
 
     if (!this.options.delayfirstframe)
-      this.onAnimFrame(0, true);
+      this.onAnimFrame(0, true);    
   }
 
   destroy()
@@ -386,34 +413,28 @@ export default class SpellcoderCarrousel
 
   onAnimFrame(timestamp, force)
   {
+//console.log("onAnimFrame", timestamp, force, this.iscroll.x);
+
+    window.cancelAnimationFrame(this.animationframe);
+    this.animationframe = null;
+
     var dpr = window.devicePixelRatio;
     if (!dpr)
       dpr = 1; // fallback for IE10
 
     var currentpos;
     if (this.options.useiscroll)
+    {
+      if (isNaN(this.iscroll.x)) // FIXME: find the cause and remove
+      {
+        //console.error("ISCROLL's x position is not a number!");
+        //currentpos = 0;
+        return;
+      }
       currentpos = -Math.round(this.iscroll.x * dpr) / dpr;
+    }
     else
       currentpos = Math.round(this.scrollleft_next * dpr) / dpr;
-/*
-    var currentpos;
-    if (this.options.useiscroll)
-      currentpos = this.iscroll.x;
-    else
-      currentpos = this.scrollleft_next;
-*/
-
-/*
-if (isNaN(currentpos))
-{
-  if (!this.warned)
-  {
-    console.error("iScroll X position is NaN !!!");
-    this.warned = true;
-  }
-  return;
-}
-*/
 
     if (force || this.scrollleft != currentpos)
     {
@@ -431,17 +452,19 @@ if (isNaN(currentpos))
         var scrollleft = this.scrollleft % this.width_content;
         //var visible_left = scrollleft;
         //var visible_right = visible_left + this.width_viewport;
-        this.options.ondrawframe.bind(this)({ scrollleft:   this.scrollleft // scrollposition in the virtual (almost endless) space
-                                 , contentleft:  scrollleft // scrollposition in the content (xpos in the content where we start in our container)
-                                 , contentwidth: this.width_content
-                                 , draw:         false // not drawing
-                                 });
+        this.options.ondrawframe.bind(this)(
+                { scrollleft:   this.scrollleft // scrollposition in the virtual (almost endless) space
+                , contentleft:  scrollleft // scrollposition in the content (xpos in the content where we start in our container)
+                , contentwidth: this.width_content
+                , draw:         false // not drawing
+                });
       }
     }
 
     // schedule the next frame
     // (!! don't move this to the start of the function, this might create a race condition)
-    this.animationframe = requestAnimationFrame(this.onAnimFrame.bind(this));
+    if (!this.animationframe)
+      this.animationframe = requestAnimationFrame(this.onAnimFrame.bind(this));
   }
 
   /** @short scroll to the x position in the virtual space
@@ -527,11 +550,14 @@ if (isNaN(currentpos))
   previousSlide()
   {
     if (this.slide_virtualstartidx == -1)
+    {
+      console.info("Restart slide_virtualstartidx");
       this.slide_virtualstartidx = this.alignedslidevirtualidx;
+    }
 
-    this.slide_offset--;
+    this.slide_offset -= this.options.slideskip;
 
-    //console.log("prevSlide", this.alignedslidevirtualidx, this.slide_virtualstartidx, this.slide_offset);
+    //console.log("previousSlide to ", this.slide_virtualstartidx, "+", this.slide_offset, "=", this.slide_virtualstartidx + this.slide_offset);
 
     this.jumpToVirtualSlide(this.slide_virtualstartidx + this.slide_offset, true);
   }
@@ -539,11 +565,15 @@ if (isNaN(currentpos))
   nextSlide()
   {
     if (this.slide_virtualstartidx == -1)
+    {
+      console.info("Restart slide_virtualstartidx");
       this.slide_virtualstartidx = this.alignedslidevirtualidx;
+    }
 
-    this.slide_offset++;
+    this.slide_offset += this.options.slideskip;
 
-    //console.log("nextSlide", this.alignedslidevirtualidx, this.slide_virtualstartidx, this.slide_offset);
+    if (this.options.name == "videos")
+      console.log("nextSlide to ", this.slide_virtualstartidx, "+", this.slide_offset, "=", this.slide_virtualstartidx + this.slide_offset);
 
     this.jumpToVirtualSlide(this.slide_virtualstartidx + this.slide_offset, true);
   }
@@ -563,7 +593,6 @@ if (isNaN(currentpos))
     if (this.options.debugdimensions)
       console.log(this.logprefix, "New carrousel width_viewport is ", this.width_viewport)
 
-//console.log(this.width_viewport);
     if (this.width_viewport == 0)
       console.warn("clientWidth of carrousel viewport is 0.");
 
@@ -573,21 +602,19 @@ if (isNaN(currentpos))
   refresh()
   {
     this.__determineContainerWidth();
+//    if (this.width_viewport == 0)
+//      return; // nothing to draw
 
-    // virtual numbering is invalidated now.
-    // (FIXME: find a way to keep virtualidx stabile, which is possible)
-    this.alignedslidevirtualidx = null;
-    if (this.alignedslidenode)
-      this.alignedslidenode.classList.remove("carrousel__cell--aligned");
+if (this.options.name == "video")
+  console.log(this.alignedslideidx, this.alignedslidevirtualidx);
 
-    this.jumpToSlide(this.alignedslideidx, false)
-    //this.jumpToVirtualSlide(this.alignedslidevirtualidx, false)
+    this.jumpToSlide(this.alignedslideidx, false) // heractiveer deze regel
 
     this.__redraw_slides(true);
 
-    // make sure keyboard navigation keeps working ok
-    if (this.slide_virtualstartidx != -1)
-      this.slide_virtualstartidx = this.alignedslidevirtualidx;
+    // reset keyboard navigation information
+    this.slide_virtualstartidx = -1;
+    this.slide_offset = 0;
   }
 
   drawFrame()
@@ -596,6 +623,8 @@ if (isNaN(currentpos))
   }
 
   // PRIVATE //////////////////////////////////////////////////////////////////////////////////
+
+
 
   importRenderInfo(renderinfo)
   {
@@ -668,6 +697,7 @@ item.node.style.left = "0";
     this.__relayoutViewport();
   }
 
+//TEST
   // FIXME: if used again remove all old slides from the DOM ?
   setSlides(nodes)
   {
@@ -749,7 +779,7 @@ item.node.style.left = "0";
 
     let posx = 0;
     let largestheight = 0;
-    this.width_content = 0;
+    let width_content = 0;
 
     var fixedslidewidth = Math.round(this.options.slidewidth);
 
@@ -778,17 +808,28 @@ item.node.style.left = "0";
 
       posx += positionwidth + this.options.gap;
 
-      this.width_content += positionwidth + this.options.gap;
+      width_content += positionwidth + this.options.gap;
     }
 
-//console.log(this.width_content);
+    // FIXME: for now everything will get messed up if this.width_content is 0
+    //        so bail here and pages in which a carrousel temporary gets hidden
+    //        will stay working correctly
+    if (width_content == 0)
+    {
+      console.error("Content width is 0");
+      return;
+    }
 
+    this.width_content = width_content;
     this.largestslideheight = largestheight;
 
     if (this.options.debugdimensions)
       this._logSlides();
 
     this.__relayoutViewport();
+
+    if (!this.finishedinit)
+      this.attemptFinishInit();
   }
 
   __relayoutViewport()
@@ -870,10 +911,10 @@ item.node.style.left = "0";
     evt.preventDefault();
     evt.stopPropagation();
 
-    var time = new Date().getTime();
-
 /*
 Sometimes if eventPassThrough is set to true we get double events? (but only in fullscreen slideshow mode?)
+
+    var time = new Date().getTime();
 
     console.info("__onNextSlideClick", time - this.prevtime);
 
@@ -1011,6 +1052,7 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
     // FIXME: although it works, I feel it's not quite the best way
 //console.log("__getLeftForSlide " + idx + " of " + this.items.length + " items.");
     var wanted_left_within_content = this.__getActivationCenterForSlide(idx);
+    console.info("wanted_left_within_content", wanted_left_within_content);
 
 //console.log(idx, pages, wanted_left_within_content, this.scrollleft, this.width_content);
 
@@ -1098,7 +1140,16 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
     console.info("getNearestSnap");
 
     x = -x;
-    var renderinfo = this.__redraw_slides(false, x);
+    this.__redraw_slides(false, x);
+    var renderinfo = this.renderinfo; // renderinfo for this __redraw_slides or the previous one (if render failed due to viewport being 0 wide)
+/*    
+
+    // if we aren't visible (width is 0) we don't ret renderinfo
+    return { x: -this.scrollleft
+           , y: 0
+           , pageX: 
+           }
+*/
 
     //console.log(renderinfo);
     var val =
@@ -1146,6 +1197,18 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
   __redraw_slides(draw, override_scrollleft)
   {
+    if (this.width_viewport == 0 || this.width_content == 0)
+    {
+      //console.error("cannot draw, width is 0");
+      return;
+    }
+
+    if (isNaN(this.scrollleft)) // this should not happen anymore?
+    {
+      console.error("scrolleft is NaN");
+      return;
+    }
+
     // virtual positions
     // Our scrolleft must be a round number to prevent blurring
     // (which will be especially visible when scrolling has ended)
@@ -1175,6 +1238,7 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
 
     var new_items_onscreen = [];
+    this.visiblenodes = [];
 
     var items_visible = 0;
     var itemcount = this.items.length;
@@ -1209,6 +1273,24 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
     while(items_visible < 1000) // FIXME: arbitrary workaround to prevent a loop when all items have width 0
     {
+
+if (items_visible == 999)
+{
+      console.log( "__redraw_slides() overflow"
+                 , { absolute_scrollleft: absolute_scrollleft
+                   , scrollleft:     scrollleft
+                   , width_content:  this.width_content
+
+                   , visible_left: visible_left
+                   , visible_right: visible_right
+
+                   , activation_x: activation_x
+
+                   , virtualslideidx: virtualslideidx
+                   });
+}
+
+
       var item = this.items[draw_itemidx];
 
 //      console.log((item.left + offsetleft) + " to " + (item.right + offsetleft));
@@ -1256,6 +1338,11 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
             item.nodecopies.push(use_node);
             this.nodes.content.appendChild(use_node);
           }
+
+          // store data which might be usefull when handling events (clicks) in content within a slide
+          use_node._wh_carrouseldata = { slideidx:        draw_itemidx
+                                       , virtualslideidx: virtualslideidx
+                                       };
   /*
           if (this.options.debugslides)
           {
@@ -1304,6 +1391,14 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
        // var rightdist = Math.abs(activation_x - (left_in_viewport + item.width + this.options.gap/2))
         var dist = leftdist;// > rightdist ? rightdist : leftdist;
 
+        // ADDME: work-in-progress to collect rendering information to do extra effects in code outside this library
+        this.visiblenodes.push(
+              { x: left_in_viewport
+              , y: offsety
+              , width: item.width
+              , height: item.height
+              });
+
         if (newactiveslide_dist == -1 || dist < newactiveslide_dist)
         {
           //console.log("actsl", virtualslideidx);
@@ -1312,7 +1407,7 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
           newactiveslidevirtualidx = virtualslideidx;
           newactiveslide_dist = dist;
         }
-      }
+      } // if not out of view
 
 
       // Prepare for the next potential item to draw
@@ -1325,7 +1420,7 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
       }
 
       items_visible++;
-    }
+    } // while
 
     //console.log(items_visible, "slides visible.");
 
@@ -1355,20 +1450,49 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
       this.items_onscreen = new_items_onscreen;
 
-      if (newactiveslideidx > -1 && newactiveslidevirtualidx != this.alignedslidevirtualidx)
-      {
+/*
+if (this.options.name == "videos")
+  console.log( "This frame:\n"
+             , "newactiveslideidx",        newactiveslideidx, "\n"
+             , "newactiveslidevirtualidx", newactiveslidevirtualidx, "\n"
+             , "slide_virtualstartidx",    this.slide_virtualstartidx
+             );
+*/
 
-        //console.log("Distance of active slide to activity-center: ", newactiveslide_dist, newactiveslidevirtualidx);
-        //console.log("Activate slide set to ", newactiveslideidx);
-        this.__setActiveSlide(item, newactiveslideidx, newactivenode, newactiveslidevirtualidx);
+/*
+console.log("ACTIVE SLIDE", { current:   this.alignedslidevirtualidx
+                            , new:       newactiveslideidx
+                            , carrousel: this.options.name
+
+                            , node_aligned: this.alignedslidenode
+                            , node_alignnew: newactivenode
+                            });
+*/
+      if (newactiveslideidx > -1)
+      {
+        if (this.alignedslidenode != newactivenode) //newactiveslidevirtualidx != this.alignedslidevirtualidx)
+        {
+          //console.log("Distance of active slide to activity-center: ", newactiveslide_dist, newactiveslidevirtualidx);
+          //console.log("Activate slide set to ", newactiveslideidx);
+          this.__setActiveSlide(item, newactiveslideidx, newactivenode, newactiveslidevirtualidx);
+        }
+
+        //console.info("virtualslideidx-active", virtualslideidx);
+        this.alignedslideidx = newactiveslideidx;
+        this.alignedslidevirtualidx = newactiveslidevirtualidx;
       }
     }
 
-    return { newactiveslideidx: newactiveslideidx
+    this.renderinfo =
+           { newactiveslideidx: newactiveslideidx
            , newactivenode:     newactivenode
            , newactiveslidevirtualidx: newactiveslidevirtualidx
            , newactiveslide_dist:      newactiveslide_dist
+           , width_viewport:           this.width_viewport
+           , width_content:            this.width_content
            };
+
+    return this.renderinfo;
   } // end of refresh()
 
 
@@ -1376,7 +1500,8 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
   {
     //console.log("Firing wh:activeslidechange");
 
-    //console.log("New active slide", newactiveslideidx, newactivenode);
+    if (this.options.name == "videos")
+      console.log("New active slide", newactiveslideidx, newactivenode, "prev", this.alignedslidenode);
 
     if (this.alignedslidenode != newactivenode)
     {
@@ -1385,8 +1510,8 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
       newactivenode.classList.add("carrousel__cell--aligned");
     }
-    //console.log("DISPATCH TO", this.node);
 
+    // FIXME: although the node getting the class has changed, the actual (original) slide may still be the same
     dompack.dispatchCustomEvent( this.node
                                , "wh:activeslidechange"
                                , { bubbles:    false // FIXME: or would we ever want this to be true?
@@ -1402,8 +1527,6 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
                                  });
 
     this.activeslide = item;
-    this.alignedslideidx = newactiveslideidx;
     this.alignedslidenode = newactivenode;
-    this.alignedslidevirtualidx = virtualslideidx;
   }
 }
