@@ -2,13 +2,14 @@
 
 /*
 
+!!!!! For Chrome 55 (on Touch devices/Android) iScroll will use pointer events instead of touch events.
+      However this ONLY WORKS if the element has touch-action: none;
+
+
 Modifications made:
 - options and code to allow for an endless scroll without iScroll performing any DOM/style interactions
-- tap event will pass the source device (mouse or touch) of the event
-- fixed iScroll not cancelling animation timers causing multiple animations to interfere with each other
-
-FIXME: iScroll scrollwheel handling does not take the scroll unit into account (pixels, lines, page)
-FIXME: fix unneeded fallback code for ancient browsers: requestAnimationFrame, addEvent, isBadAndroid
+- tap event will pass the source (mouse or touch) of the event
+- patch from RByers from https://github.com/cubiq/iscroll/issues/1100 to fix scrolling on Android breaking
 
 */
 
@@ -750,11 +751,31 @@ FIXME: FLICK GIVES US PROBLEMS --- MARK
   },
 
   disable: function () {
+    /** Patch by RByers (21 dec 2016) **************************/
+    this.wrapper.style.touchAction='';
+
     this.enabled = false;
   },
 
   enable: function () {
+
     this.enabled = true;
+
+    /** Patch by RByers (21 dec 2016) **************************/
+    // https://github.com/cubiq/iscroll/issues/1100
+
+    var touchAction = 'none'
+    if ( this.options.eventPassthrough == 'vertical' ) {
+      touchAction = 'pan-y';
+    } else if ( this.options.eventPassthrough == 'horizontal' ) {
+      touchAction = 'pan-x';
+    }
+    this.wrapper.style.touchAction = touchAction;
+    if (touchAction != 'none') {
+      // add pinch-zoom support if the browser supports it, but if not (eg. Chrome <55) do nothing
+      this.wrapper.style.touchAction += ' pinch-zoom';
+    }
+    /***********************************************************/
   },
 
   refresh: function () {
