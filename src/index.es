@@ -72,6 +72,9 @@ export default class SpellcoderCarrousel
             , slidewidth:         0 // if set, the fixed width (in px) will be used instead of the measures width
             , height:             0 // to override the automatic height based on slide height
                                     // (auto slide height doesn't take things like box-shadow's into account and so the overflow: hidden; meant to prevent page overflow will cut off the box-shadows)
+            , updateviewportheight: true // Update the height of our viewport based on the specified height option or height of the slides.
+                                        // Set to TRUE of we want to resize to the slides or our parent have no fixed height
+                                        // Set to FALSE in case our parent has a fixed height which we want to fill (often in an inline/in-the-page slideshow)
 
             // padding around the content space in which the active slide is positioned
             , paddingLeft:        0
@@ -551,7 +554,7 @@ export default class SpellcoderCarrousel
   {
     if (this.slide_virtualstartidx == -1)
     {
-      console.info("Restart slide_virtualstartidx");
+      //console.info("Restart slide_virtualstartidx");
       this.slide_virtualstartidx = this.alignedslidevirtualidx;
     }
 
@@ -566,7 +569,7 @@ export default class SpellcoderCarrousel
   {
     if (this.slide_virtualstartidx == -1)
     {
-      console.info("Restart slide_virtualstartidx");
+      //console.info("Restart slide_virtualstartidx");
       this.slide_virtualstartidx = this.alignedslidevirtualidx;
     }
 
@@ -595,8 +598,6 @@ export default class SpellcoderCarrousel
 
     if (this.width_viewport == 0)
       console.warn("clientWidth of carrousel viewport is 0.");
-
-    //this.nodes.viewport.style.height = this.largestslideheight + "px";
   }
 
   refresh()
@@ -604,9 +605,6 @@ export default class SpellcoderCarrousel
     this.__determineContainerWidth();
 //    if (this.width_viewport == 0)
 //      return; // nothing to draw
-
-if (this.options.name == "video")
-  console.log(this.alignedslideidx, this.alignedslidevirtualidx);
 
     this.jumpToSlide(this.alignedslideidx, false) // heractiveer deze regel
 
