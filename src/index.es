@@ -328,7 +328,7 @@ export default class SpellcoderCarrousel
           , name:           "" // for debugging purposes
           };
 
-//      if (this.options.debug)
+      if (this.options.debugoptions)
         console.log(iscrollsettings);
 
       this.iscroll = new IScroll(this.nodes.dragarea, iscrollsettings);
@@ -365,6 +365,8 @@ export default class SpellcoderCarrousel
       this.scrollleft = 0;
       this.scrollleft_next = initialx;
     }
+
+    this.finishedinit = true;
 
     if (!this.options.delayfirstframe)
       this.onAnimFrame(0, true);    
@@ -850,7 +852,8 @@ item.node.style.left = "0";
     if (this.options.debugdimensions)
       console.log("__relayoutViewport reads width (", this.width_viewport, ") and sets viewport height to", newheight);
 
-    this.nodes.viewport.style.height = newheight + "px";
+    if (this.options.updateviewportheight)
+      this.nodes.viewport.style.height = newheight + "px";
   }
 
   // PRIVATE - UI interaction //////////////////////////////////////////////////////////////////
@@ -1027,7 +1030,7 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
 
   __getLeftForSlide(idx, forward)
   {
-    var orig_idx = idx; // DEBUG
+    //var orig_idx = idx; // DEBUG
 
     // get the real item index
     var idx_neg = idx < 0;
@@ -1044,19 +1047,9 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
       pages = Math.floor(idx / this.items.length);
     }
 
-//    console.info(orig_idx, idx, pages, forward);
-//console.warn(this.width_viewport);
-
-    // FIXME: although it works, I feel it's not quite the best way
-//console.log("__getLeftForSlide " + idx + " of " + this.items.length + " items.");
     var wanted_left_within_content = this.__getActivationCenterForSlide(idx);
     console.info("wanted_left_within_content", wanted_left_within_content);
 
-//console.log(idx, pages, wanted_left_within_content, this.scrollleft, this.width_content);
-
-    //console.log(this.options.activeslidealignment, wanted_left_within_content);
-
-    //console.log("Position change:", this.items[idx].left - (this.scrollleft % this.width_content) - this.options.paddingLeft);
     var left = this.scrollleft + wanted_left_within_content - (this.scrollleft % this.width_content);
 
     if (forward && left < this.scrollleft)
