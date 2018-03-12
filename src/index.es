@@ -133,6 +133,8 @@ export default class SpellcoderCarrousel
 
             , keyboardnavigation:  true
 
+            , randomizeslides:    false // set to true to randomize the slides on initialization
+
             /** In case cases you might want to first setup stuff.. or prevent getting a callback before getting the returnvalue of new Carrousel..
                 If this is the case set autodraw_firstframe to false and call drawFrame();
             */
@@ -694,6 +696,9 @@ item.node.style.left = "0";
       item.node.__iteminfo = iteminfo;
     }
 
+    if (this.options.randomizeslides)
+      this._randomizeSlides();
+
     this.__relayoutViewport();
   }
 
@@ -747,12 +752,31 @@ item.node.style.left = "0";
       node.__iteminfo = iteminfo;
     }
 
+    if (this.options.randomizeslides)
+      this._randomizeSlides();
+
     this.largestslideheight = largestheight;
 
     if (this.options.debugdimensions)
       this._logSlides();
 
     this.__relayoutViewport();
+  }
+
+  _randomizeSlides()
+  {
+    for (let i = this.items.length - 1; i > 0; --i)
+    {
+      let j = Math.floor(Math.random() * (i + 1));
+
+      let tmp = this.items[i];
+      this.items[i] = this.items[j];
+      this.items[j] = tmp;
+
+      tmp = this.items_onscreen[i];
+      this.items_onscreen[i] = this.items_onscreen[j];
+      this.items_onscreen[j] = tmp;
+    }
   }
 
   _addToLog(msg)
