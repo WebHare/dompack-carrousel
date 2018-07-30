@@ -12,7 +12,7 @@ Simple example:
 (see chapter 'Usage examples' for more examples)
 
 ```
-import Carrousel from "dompack-carrousel";
+import Carrousel from "@webhare/dompack-carrousel";
 
 let carrousel = new Carrousel(viewport
     , { gap:          0
@@ -176,4 +176,4 @@ function doCheckForCarouselVideoTrigger(event)
 - more keyboard navigation (shift+left/right arrow, apple+left/right)
 - autoplay (usefull when used as slideshow)
 - upon resizing try to keep the centerpoint in the % position on screen it was on when the resize started
-- function to call which detects new slides (ignores copies we made). But how 
+- function to call which detects new slides (ignores copies we made). But how
