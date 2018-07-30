@@ -1,5 +1,5 @@
 {
-  "name": "dompack-carrousel",
+  "name": "@webhare/dompack-carrousel",
   "version": "0.0.1",
   "description": "Dompack Carrousel",
   "main": "src/index.es",
@@ -8,7 +8,7 @@
   },
   "author": "B-Lex IT B.V.",
   "license": "MIT",
-  "dependencies": {
-    "dompack": "WebHare/dompack"
+  "peerDependencies": {
+    "dompack": "^1.4.0"
   }
 }
