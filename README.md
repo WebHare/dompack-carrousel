@@ -1,7 +1,19 @@
 # What does it do
 
 It can create the illusion of endless scrolling (wrapping) horizontally.
-To do this it handles scrolling (through mouse, scrollwheel, touch and keyboard) and handles cloning nodes and repositioning content.
+To do this it handles:
+- scrolling (through mouse, scrollwheel, touch and keyboard) using iscroll
+- positioning of content
+- placing cloned content when needed to fill up the viewport horizontally
+- aligning the active element (for example with content on your page)
+
+
+# Use-Cases
+
+- as image carrousel (horizontal strip with images which wrap/repeat)
+- as carrousel for articles
+- as slideshow (or use dompack-carrousel-slideshow). Ofcourse you could also use CSS snap points for this, unless you want the slideshow wrap if you keep scrolling.
+- grid/masonry of items which wraps
 
 
 # Usage of Carrousel
@@ -48,23 +60,11 @@ You can add additional (JSON encoded) setting to the data-carrousel-options attr
 ```
 
 
-
-# Use-Cases
-
-- as image carrousel (horizontal strip with images which wrap/repeat)
-- as carrousel for articles
-- as slideshow
-- grid/masonry of items which wraps
-
-
-
-
-
 # Restrictions
 
 - meant to be used with * { box-sizing: border-box }
 - FIXME: at the moment the X position of elements must be sorted to function correctly?
-- Trackpad has to be handled yourself by now, which can only reliably be done by detecting scroll on a focussed element.
+- Trackpad has to be handled yourself by now, which can only reliably be done by detecting scroll on a focussed element
 
 
 # Additional suggestions for usage
@@ -88,7 +88,6 @@ This can be usefull in handling an event (for example a click) within the carrou
 , virtualslideidx:
 }
 ```
-
 
 
 
@@ -170,10 +169,9 @@ function doCheckForCarouselVideoTrigger(event)
 
 
 
-# Future enhancements
+# Future enhancements ideas
 
 - option for keyboard navigation to be 'per slide/element' or '% of viewport' or 'amount of pixels'?
 - more keyboard navigation (shift+left/right arrow, apple+left/right)
-- autoplay (usefull when used as slideshow)
 - upon resizing try to keep the centerpoint in the % position on screen it was on when the resize started
-- function to call which detects new slides (ignores copies we made). But how
+- method to call to detect, add or report new slides

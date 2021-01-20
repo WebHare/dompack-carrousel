@@ -1,12 +1,12 @@
 {
   "name": "@webhare/dompack-carrousel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dompack Carrousel",
   "main": "src/index.es",
   "scripts": {
     "test": "echo \"Not yet available\" && exit 1"
   },
-  "author": "B-Lex IT B.V.",
+  "author": "Webhare",
   "license": "MIT",
   "peerDependencies": {
     "dompack": "^1.4.0"
