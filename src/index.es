@@ -371,7 +371,7 @@ export default class SpellcoderCarrousel
     this.finishedinit = true;
 
     if (!this.options.delayfirstframe)
-      this.onAnimFrame(0, true);    
+      this.onAnimFrame(0, true);
   }
 
   destroy()
@@ -1157,12 +1157,12 @@ Sometimes if eventPassThrough is set to true we get double events? (but only in 
     x = -x;
     this.__redraw_slides(false, x);
     var renderinfo = this.renderinfo; // renderinfo for this __redraw_slides or the previous one (if render failed due to viewport being 0 wide)
-/*    
+/*
 
     // if we aren't visible (width is 0) we don't ret renderinfo
     return { x: -this.scrollleft
            , y: 0
-           , pageX: 
+           , pageX:
            }
 */
 
@@ -1349,6 +1349,7 @@ if (items_visible == 999)
           {
             // create a new copy of the slide to use
             use_node = item.node.cloneNode(true);
+            use_node.classList.remove("carrousel__cell--aligned"); // Make sure we don't get a rogue aligned state on the clone
             use_node.__iteminfo = item;
             item.nodecopies.push(use_node);
             this.nodes.content.appendChild(use_node);
